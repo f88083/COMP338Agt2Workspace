@@ -145,7 +145,7 @@ loaded_model.eval()
 # Create the preprocessing transformation here
 transform = transforms.ToTensor()
 # load your image(s)
-img = Image.open('data/COMP338_Assignment2_Dataset/Test/cars/0057.jpg')
+img = Image.open('data/COMP338_Assignment2_Dataset/Test/cars/0021.jpg')
 
 # Transform
 input = transform(img)
@@ -155,8 +155,9 @@ input = input.unsqueeze(0)
 
 # Get prediction
 output = loaded_model(input)
+index = torch.argmax(output)
 
-print(torch.max(output))
+print(index.item())
 print(input)
 
 
