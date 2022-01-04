@@ -161,6 +161,7 @@ class_name_dict = {
 
 class_name_accurate_times = 0
 compare_times = 0
+overall_accuracy = 0.0
 
 for image in glob.glob(img_path):
     class_name = os.path.dirname(image)
@@ -185,12 +186,9 @@ for image in glob.glob(img_path):
 
     compare_times += 1
 
-
+overall_accuracy = class_name_accurate_times / compare_times
 print('OVER')
-print(class_name_accurate_times)
-print(compare_times)
-
-
+print(str(overall_accuracy * 100) + '%')
 
 # print(output)
 
