@@ -121,6 +121,32 @@ def train_model(net, n_epochs, batch_size, learning_rate):
     plot(train_accuracy, "training accuracy")
 
 
+def test_model():
+    model = CNN()
+    # num_ftrs = model.fc.in_features
+    # if num_ftrs != 5:
+    #     model.fc = nn.Linear(num_ftrs, 5)
+    model.load_state_dict(torch.load('cnn.pkl'))
+    model.eval()
+
+    test_set = imgdata.DefaultTestSet()
+    test_loader = Data.DataLoader(dataset=test_set)
+
+    correct = 0
+
+    with torch.no_grad():
+        for entity in test_loader:
+            images = Variable(entity['imNorm'])
+            labels = Variable(torch.squeeze(entity['label']))
+            # outputs = model.predict(images)
+            outputs = model(images)
+            pred_y = torch.max(outputs.data, 1)[1]
+            correct += (pred_y == labels).sum().item()
+
+    accuracy = 100 * correct / len(test_set)
+    print("Test accuracy: {:.2f}%".format(accuracy))
+
+
 seed = 42
 torch.manual_seed(seed)
 
@@ -159,41 +185,69 @@ class_name_dict = {
     'keyboard': 4
 }
 
-class_name_accurate_times = 0
-compare_times = 0
-overall_accuracy = 0.0
 
-for image in glob.glob(img_path):
-    class_name = os.path.dirname(image)
-    class_name = os.path.basename(class_name)
+# test_model()
 
-    current_class_name_index = class_name_dict.get(class_name)
-    # print(class_name)
-    img = Image.open(image)
-    # Transform
-    input = transform(img)
+def test_and_predict():
+    class_name_accurate_times = 0
+    compare_times = 0
+    overall_accuracy = 0.0
+    classification_accurate_times_per_class = 0
+    class_compare_times = 0
+    previous_class_index = 0
+    previous_class_name = ''
 
-    # unsqueeze batch dimension, in case you are dealing with a single image
-    input = input.unsqueeze(0)
+    for image in glob.glob(img_path):
+        class_name = os.path.dirname(image)
+        class_name = os.path.basename(class_name)
 
-    # Get prediction
-    output = loaded_model(input)
+        current_class_name_index = class_name_dict.get(class_name)
+        # print('current class name : ' + str(class_name))
+        # print('current class name index : ' + str(current_class_name_index))
 
-    index = torch.argmax(output)
-    print(index.item())
-    if index.item() == current_class_name_index:
-        class_name_accurate_times += 1
+        img = Image.open(image)
+        # Transform
+        input = transform(img)
 
-    compare_times += 1
+        # unsqueeze batch dimension, in case you are dealing with a single image
+        input = input.unsqueeze(0)
 
-overall_accuracy = class_name_accurate_times / compare_times
-print('OVER')
-print(str(overall_accuracy * 100) + '%')
+        # Get prediction
+        output = loaded_model(input)
 
-# print(output)
+        index = torch.argmax(output)
 
-# print(input)
+        if index.item() == current_class_name_index:
+            class_name_accurate_times += 1
 
+        if previous_class_index == current_class_name_index:
+            if index.item() == current_class_name_index:
+                classification_accurate_times_per_class += 1
+            class_compare_times += 1
+            previous_class_name = class_name
+        else:
+            print('Class ' + str(previous_class_name) + ' accuracy is: ' + str(
+                classification_accurate_times_per_class / class_compare_times * 100) + '%')
+            classification_accurate_times_per_class = 0
+            class_compare_times = 0
+            previous_class_index = current_class_name_index
+            if index.item() == current_class_name_index:
+                classification_accurate_times_per_class += 1
+            class_compare_times += 1
+
+        compare_times += 1
+
+    # For the last class
+    print('Class ' + str(previous_class_name) + ' accuracy is: ' + str(
+        classification_accurate_times_per_class / class_compare_times * 100) + '%')
+
+
+    overall_accuracy = class_name_accurate_times / compare_times
+    print('OVER')
+    print(str(overall_accuracy * 100) + '%')
+
+
+test_and_predict()
 
 # ---------------------------------------------------------------
 # # 获取图像路径
