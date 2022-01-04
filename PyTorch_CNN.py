@@ -1,3 +1,5 @@
+import os
+
 import joblib as joblib
 import numpy as np
 import imgdata
@@ -11,6 +13,7 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import transforms
 from PIL import Image
 import glob
+
 
 class CNN(nn.Module):
     def __init__(self):
@@ -140,28 +143,58 @@ loaded_model.eval()
 # output = loaded_model(img)
 
 
-
 # ---------------------------------------------------
 # Create the preprocessing transformation here
 transform = transforms.ToTensor()
 # load your image(s)
 img = Image.open('data/COMP338_Assignment2_Dataset/Test/keyboard/0075.jpg')
 
-# Transform
-input = transform(img)
+img_path = 'data/COMP338_Assignment2_Dataset/Test/*/*.jpg'
 
-# unsqueeze batch dimension, in case you are dealing with a single image
-input = input.unsqueeze(0)
+class_name_dict = {
+    'airplanes': 0,
+    'cars': 1,
+    'dog': 2,
+    'faces': 3,
+    'keyboard': 4
+}
 
-# Get prediction
-output = loaded_model(input)
+class_name_accurate_times = 0
+compare_times = 0
 
-index = torch.argmax(output)
+for image in glob.glob(img_path):
+    class_name = os.path.dirname(image)
+    class_name = os.path.basename(class_name)
 
-print(output)
-print(index.item())
-print(input)
+    current_class_name_index = class_name_dict.get(class_name)
+    # print(class_name)
+    img = Image.open(image)
+    # Transform
+    input = transform(img)
 
+    # unsqueeze batch dimension, in case you are dealing with a single image
+    input = input.unsqueeze(0)
+
+    # Get prediction
+    output = loaded_model(input)
+
+    index = torch.argmax(output)
+    print(index.item())
+    if index.item() == current_class_name_index:
+        class_name_accurate_times += 1
+
+    compare_times += 1
+
+
+print('OVER')
+print(class_name_accurate_times)
+print(compare_times)
+
+
+
+# print(output)
+
+# print(input)
 
 
 # ---------------------------------------------------------------
