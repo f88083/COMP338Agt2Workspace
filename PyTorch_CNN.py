@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import transforms
 from PIL import Image
 import glob
+from sklearn.metrics import confusion_matrix
 
 
 class CNN(nn.Module):
@@ -186,6 +187,19 @@ class_name_dict = {
 }
 
 
+# Function for getting the key by values
+def get_key(val):
+    for key, value in class_name_dict.items():
+        if val == value:
+            return key
+
+    return "key doesn't exist"
+
+
+true_list = []
+predict_list = []
+
+
 # test_model()
 
 def test_and_predict():
@@ -198,9 +212,12 @@ def test_and_predict():
     previous_class_name = ''
 
     for image in glob.glob(img_path):
+        # filename = os.path.splitext(image)[0]
+        # filename = os.path.basename(filename)
+        # print('filename: ' + str(filename))
         class_name = os.path.dirname(image)
         class_name = os.path.basename(class_name)
-
+        true_list.append(class_name)
         current_class_name_index = class_name_dict.get(class_name)
         # print('current class name : ' + str(class_name))
         # print('current class name index : ' + str(current_class_name_index))
@@ -216,6 +233,8 @@ def test_and_predict():
         output = loaded_model(input)
 
         index = torch.argmax(output)
+
+        predict_list.append(get_key(index))
 
         if index.item() == current_class_name_index:
             class_name_accurate_times += 1
@@ -241,6 +260,8 @@ def test_and_predict():
     print('Class ' + str(previous_class_name) + ' accuracy is: ' + str(
         classification_accurate_times_per_class / class_compare_times * 100) + '%')
 
+    print(true_list)
+    print(predict_list)
 
     overall_accuracy = class_name_accurate_times / compare_times
     print('OVER')
@@ -248,6 +269,14 @@ def test_and_predict():
 
 
 test_and_predict()
+
+
+def confusion_matrix_calculator():
+    c = confusion_matrix(true_list, predict_list)
+    print(c)
+
+
+confusion_matrix_calculator()
 
 # ---------------------------------------------------------------
 # # 获取图像路径
