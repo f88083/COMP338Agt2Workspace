@@ -81,6 +81,13 @@ def train_model(net, n_epochs, batch_size, learning_rate):
     print("learning_rate=", learning_rate)
     print("=" * 30)
 
+    if torch.cuda.is_available():
+        dev = "cuda:0"
+    else:
+        dev = "cpu"
+
+    net.to(dev)
+
     loss_func = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), lr=LEARNING_RATE)
 
@@ -97,7 +104,9 @@ def train_model(net, n_epochs, batch_size, learning_rate):
 
         for _, entity in enumerate(train_loader):
             b_x = Variable(entity['imNorm'])
+            b_x = b_x.to(dev)
             b_y = Variable(entity['label']).reshape(len(entity['label']), )
+            b_y = b_y.to(dev)
 
             output = net(b_x)
             loss = loss_func(output, b_y.long())
@@ -157,6 +166,7 @@ LEARNING_RATE = 0.01
 IN_CHANNELS = 3
 
 cnn = CNN()
+# train_model(cnn, EPOCH, BATCH_SIZE, LEARNING_RATE)
 # train_model(cnn, EPOCH, BATCH_SIZE, LEARNING_RATE)
 
 
@@ -268,7 +278,7 @@ def test_and_predict():
     print(str(overall_accuracy * 100) + '%')
 
 
-test_and_predict()
+# test_and_predict()
 
 
 def confusion_matrix_calculator():
@@ -276,38 +286,63 @@ def confusion_matrix_calculator():
     print(c)
 
 
-confusion_matrix_calculator()
-
-# ---------------------------------------------------------------
-# # 获取图像路径
-# filelist = glob.glob('data/COMP338_Assignment2_Dataset/Test/*.jpg')
-#
-# # 打开图像open('frame_path')--》转换为灰度图convert('L')--》缩放图像resize((width, height)) --》合并文件夹中的所有图像为一个numpy array
-# x = np.array([np.array(Image.open(frame).convert('L').resize((128, 128))) for frame in filelist])
-#
-# # 用torch.from_numpy这个方法将numpy类转换成tensor类
-# x = torch.from_numpy(x).type(torch.FloatTensor).cuda()
-#
-# # 扩充数据维度
-# x = Variable(torch.unsqueeze(x, dim=1).float(), requires_grad=False)
+# confusion_matrix_calculator()
 
 
-# --------------------------------------------------------------
-# trans = transforms.Compose([
-#     transforms.RandomHorizontalFlip(),
-#     transforms.Resize(32),
-#     transforms.CenterCrop(32),
-#     transforms.ToTensor(),
-#     transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))
-#     ])
-# input = trans(img)
-# input = input.view(1, 3, 32,32)
-# output = loaded_model(input)
+# Revise from chenzhi
 
-# -------------------------------------
-# # reshape sample to (batch-size x width x height) but batch-size is 1 because you probably want to predict just one image at a time in real-life usage
-# img = torch.reshape(1, img.size(0), img.size(1))
-#
-# prediction = loaded_model(img)
-#
-# print(prediction)
+EPOCH = 20
+LEARNING_RATE = 0.00001
+
+
+def load_model():
+    cnn = CNN()
+    cnn.load_state_dict(torch.load('cnn.pkl'.format(EPOCH, LEARNING_RATE)))
+    return cnn
+
+
+def test_model(cnn):
+    cnn.eval()
+
+    total = 0
+    correct = 0
+    overall_accuracy = 0.0
+    classification_accurate_times_per_class = 0
+    class_compare_times = 0
+    previous_class_index = 0
+    previous_class_name = ''
+    accuracy_array = [0, 0, 0, 0, 0]
+
+    test_set = imgdata.DefaultTestSet()
+    test_loader = Data.DataLoader(dataset=test_set)
+    conf_arr = np.zeros((5, 5), dtype=np.int)  # create a 5*5 matrix with all values 0
+    for index, entity in enumerate(test_loader):
+        b_x = Variable(entity['imNorm'])
+        b_y = Variable(entity['label']).numpy().squeeze()
+        b_y = int(b_y)
+        pred_y = cnn.predict(b_x)
+
+        # print(pred_y)
+        print(b_y)
+        total += 1
+        # For total prediction
+        if b_y == pred_y:
+            correct += 1
+        conf_arr[b_y][pred_y] += 1
+
+        # For every class accuracy
+        if b_y == pred_y:
+            accuracy_array[b_y] += 1
+
+
+    print('Overall accuracy: ' + str(correct / total * 100) + '%')
+    print('Correct predicted items: ' + str(correct))
+    print('Total predicted items: ' + str(total))
+    print('Confusion matrix: \n' + str(conf_arr))
+    print("-----------------")
+    for index in range(len(accuracy_array)):
+        print('Accuracy of ' + str(get_key(index)) + ' is: ' + str(accuracy_array[index] * 100 / 10) + '%')
+
+
+if __name__ == "__main__":
+    test_model(load_model())
