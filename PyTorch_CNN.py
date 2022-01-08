@@ -1,5 +1,4 @@
 import os
-
 import joblib as joblib
 import numpy as np
 import imgdata
@@ -292,12 +291,12 @@ def confusion_matrix_calculator():
 # Revise from chenzhi
 
 EPOCH = 20
-LEARNING_RATE = 0.00001
+LEARNING_RATE = 0.0001
 
 
 def load_model():
     cnn = CNN()
-    cnn.load_state_dict(torch.load('cnn.pkl'.format(EPOCH, LEARNING_RATE)))
+    cnn.load_state_dict(torch.load('cnn_{0}_{1}.pkl'.format(EPOCH, LEARNING_RATE)))
     return cnn
 
 
@@ -321,9 +320,10 @@ def test_model(cnn):
         b_y = Variable(entity['label']).numpy().squeeze()
         b_y = int(b_y)
         pred_y = cnn.predict(b_x)
+        # print(test_loader.dataset[index])
 
         # print(pred_y)
-        print(b_y)
+        # print(b_y)
         total += 1
         # For total prediction
         if b_y == pred_y:
@@ -333,7 +333,6 @@ def test_model(cnn):
         # For every class accuracy
         if b_y == pred_y:
             accuracy_array[b_y] += 1
-
 
     print('Overall accuracy: ' + str(correct / total * 100) + '%')
     print('Correct predicted items: ' + str(correct))
@@ -345,4 +344,5 @@ def test_model(cnn):
 
 
 if __name__ == "__main__":
+    print('ENTER')
     test_model(load_model())
